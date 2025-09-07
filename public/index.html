@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            color: white;
+            order: 2;
+            margin-right: 0;
+            margin-left: 10px;
+        }
+
+        .message.bot .message-avatar {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .typing-indicator .message-avatar {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+
+        .typing-dots {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 15px 20px;
+            margin-left: 10px;
+            border-bottom-left-radius: 5px;
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 5px;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: #6366f1;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 12px 15px;
+            font-size: 15px;
+            background: transparent;
+            resize: none;
+            min-height: 20px;
+            max-height: 120px;
+            line-height: 1.4;
+            font-family: inherit;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .clear-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .config-panel {
+            position: fixed;
+            top: 20px;
+            left: -300px;
+            width: 280px;
+            height: calc(100vh - 40px);
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s ease;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .config-panel.open {
+            left: 20px;
+        }
+
+        .config-toggle {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .config-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .config-section {
+            margin-bottom: 20px;
+        }
+
+        .config-section h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        .config-section input, .config-section select, .config-section textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .chat-container {
+                height: 95vh;
+                border-radius: 15px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .config-panel {
+                width: calc(100vw - 40px);
+                left: -100vw;
+            }
+
+            .config-panel.open {
+                left: 20px;
+            }
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 20px;
+            font-size: 14px;
+            border-left: 4px solid #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <button class="config-toggle" onclick="toggleConfig()">⚙️</button>
+    
+    <div class="config-panel" id="configPanel">
+        <h2>Configuration</h2>
+        
+        <div class="config-section">
+            <h3>API Settings</h3>
+            <input type="text" id="apiEndpoint" placeholder="API Endpoint URL" 
+                   value="http://localhost:3000/api/chat">
+            <input type="password" id="apiKey" placeholder="API Key (if required)">
+            <select id="modelType">
+                <option value="huggingface">Hugging Face</option>
+                <option value="langraph">LangGraph</option>
+                <option value="loan_backend">Loan Backend</option>
+                <option value="custom">Custom API</option>
+            </select>
+        </div>
+        
+        <div class="config-section">
+            <h3>Model Parameters</h3>
+            <input type="number" id="maxTokens" placeholder="Max Tokens" value="100" min="1" max="2048">
+            <input type="number" id="temperature" placeholder="Temperature" value="0.7" min="0" max="2" step="0.1">
+            <select id="responseFormat">
+                <option value="text">Text</option>
+                <option value="json">JSON</option>
+                <option value="markdown">Markdown</option>
+            </select>
+        </div>
+
+        <div class="config-section">
+            <h3>System Prompt</h3>
+            <textarea id="systemPrompt" rows="4" 
+                      placeholder="Enter system prompt here...">You are a helpful loan application assistant. Guide users through the loan application process step by step, collect required information, and provide clear instructions.</textarea>
+        </div>
+
+        <div class="config-section" id="progressSection" style="display: none;">
+            <h3>Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">Step 1 of 10</p>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <button class="clear-button" onclick="clearChat()">Clear Chat</button>
+            <div class="status-indicator"></div>
+            <h1>AI Chatbot</h1>
+            <p>Powered by Multiple AI APIs</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    Hello! I'm your AI assistant. How can I help you today?
+                </div>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">🤖</div>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Type your message here..." 
+                    rows="1"
+                ></textarea>
+                <button class="send-button" id="sendButton" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isTyping = false;
+        let conversationHistory = [];
+        let currentSessionId = null;
+        let collectedData = {};
+
+        // Auto-resize textarea
+        const chatInput = document.getElementById('chatInput');
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Enter to send (Shift+Enter for new line)
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function toggleConfig() {
+            const panel = document.getElementById('configPanel');
+            panel.classList.toggle('open');
+        }
+
+        function clearChat() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div class="message bot">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        Hello! I'm your AI assistant. How can I help you today?
+                    </div>
+                </div>
+            `;
+            conversationHistory = [];
+            currentSessionId = null;
+            collectedData = {};
+            updateProgress(0);
+        }
+
+        function addMessage(content, isUser = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="message-content">${content}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Store in conversation history
+            conversationHistory.push({
+                role: isUser ? 'user' : 'assistant',
+                content: content
+            });
+        }
+
+        function showTyping() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            typingIndicator.style.display = 'flex';
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            isTyping = true;
+        }
+
+        function hideTyping() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            typingIndicator.style.display = 'none';
+            isTyping = false;
+        }
+
+        function showError(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function updateProgress(progress) {
+            const progressSection = document.getElementById('progressSection');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            if (progress > 0) {
+                progressSection.style.display = 'block';
+                progressFill.style.width = progress + '%';
+                const step = Math.floor(progress / 10) + 1;
+                progressText.textContent = `Step ${step} of 10`;
+            } else {
+                progressSection.style.display = 'none';
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
+            const message = input.value.trim();
+            
+            if (!message || isTyping) return;
+            
+            // Add user message
+            addMessage(message, true);
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Disable input and show typing
+            sendButton.disabled = true;
+            showTyping();
+            
+            try {
+                const response = await callAPI(message);
+                hideTyping();
+                addMessage(response);
+            } catch (error) {
+                hideTyping();
+                showError(`Error: ${error.message}`);
+                console.error('API call failed:', error);
+            }
+            
+            sendButton.disabled = false;
+        }
+
+        // ...inside <script>...
+async function callAPI(message) {
+    const apiEndpoint = document.getElementById('apiEndpoint').value;
+    const apiKey = document.getElementById('apiKey').value;
+    const modelType = document.getElementById('modelType').value;
+
+    if (!apiEndpoint) {
+        throw new Error('Please configure the API endpoint in settings');
+    }
+
+    let requestBody;
+    let headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
+    switch (modelType) {
+        case 'loan_backend':
+            requestBody = {
+                message: message,
+                session_id: currentSessionId
+            };
+            break;
+
+        case 'huggingface':
+            requestBody = {
+                message: message
+            };
+            break;
+
+        case 'langraph':
+            requestBody = {
+                query: message,
+                config: {
+                    temperature: parseFloat(document.getElementById('temperature').value),
+                    max_tokens: parseInt(document.getElementById('maxTokens').value)
+                },
+                conversation_history: conversationHistory.slice(-10)
+            };
+            break;
+
+        case 'custom':
+        default:
+            requestBody = {
+                message: message,
+                system_prompt: document.getElementById('systemPrompt').value,
+                max_tokens: parseInt(document.getElementById('maxTokens').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                conversation_history: conversationHistory.slice(-10)
+            };
+            break;
+    }
+
+    const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    let aiResponse;
+    if (modelType === 'loan_backend') {
+        if (data.session_id) {
+            currentSessionId = data.session_id;
+        }
+        if (data.collected_data) {
+            collectedData = data.collected_data;
+        }
+        const progress = data.progress || 0;
+        updateProgress(progress);
+        aiResponse = data.response || data.message || 'Processing your request...';
+    } else if (modelType === 'huggingface') {
+        aiResponse = data.response || 'No response generated';
+    } else if (modelType === 'langraph') {
+        aiResponse = data.response || data.answer || data.output || 'No response generated';
+    } else {
+        aiResponse = data.response || data.message || data.output || 'No response generated';
+    }
+
+    return aiResponse;
+}
+
+        // Load saved configuration
+        window.addEventListener('load', function() {
+            try {
+                const savedConfig = localStorage.getItem('chatbotConfig');
+                if (savedConfig) {
+                    const config = JSON.parse(savedConfig);
+                    document.getElementById('apiEndpoint').value = config.apiEndpoint || 'http://localhost:3000/api/chat';
+                    document.getElementById('apiKey').value = config.apiKey || '';
+                    document.getElementById('modelType').value = config.modelType || 'huggingface';
+                    document.getElementById('maxTokens').value = config.maxTokens || 100;
+                    document.getElementById('temperature').value = config.temperature || 0.7;
+                    document.getElementById('systemPrompt').value = config.systemPrompt || 'You are a helpful AI assistant.';
+                }
+            } catch (error) {
+                console.error('Failed to load saved configuration:', error);
+            }
+        });
+
+        // Save configuration when changed
+        document.addEventListener('change', function(e) {
+            if (e.target.closest('#configPanel')) {
+                try {
+                    const config = {
+                        apiEndpoint: document.getElementById('apiEndpoint').value,
+                        apiKey: document.getElementById('apiKey').value,
+                        modelType: document.getElementById('modelType').value,
+                        maxTokens: document.getElementById('maxTokens').value,
+                        temperature: document.getElementById('temperature').value,
+                        systemPrompt: document.getElementById('systemPrompt').value
+                    };
+                    localStorage.setItem('chatbotConfig', JSON.stringify(config));
+                } catch (error) {
+                    console.error('Failed to save configuration:', error);
+                }
+            }
+        });
+
+        // Close config panel when clicking outside
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('configPanel');
+            const toggle = document.querySelector('.config-toggle');
+            
+            if (!panel.contains(e.target) && e.target !== toggle) {
+                panel.classList.remove('open');
+            }
+        });
+        // ...existing code...
+
+// --- Loan Application Question Flow Logic (from Python, now in JS) ---
+
+const STATIC_QUESTIONS = [
+    { id: "start", text: "Hello! I'm here to help you apply for your loan. I'll just ask you a few quick questions, and we'll be done in a few minutes. Ready to begin?", next: "name" },
+    { id: "name", text: "Great! Can I have your full name as per your official documents?", next: "dob" },
+    { id: "dob", text: "And your date of birth?", next: "gender" },
+    { id: "gender", text: "Gender?", next: "mobile" },
+    { id: "mobile", text: "Which mobile number should we use to contact you?", next: "email" },
+    { id: "email", text: "And your email address?", next: "confirm_personal" },
+    { id: "confirm_personal", text: (data) => `Just to confirm, here's what I have:\nName: ${data.name || ''}\nDOB: ${data.dob || ''}\nGender: ${data.gender || ''}\nMobile: ${data.mobile || ''}\nEmail: ${data.email || ''}\nIs that correct?`, next: "address" },
+    { id: "address", text: "What's your current residential address?", next: "address_status" },
+    { id: "address_status", text: "Is this owned, rented, or provided by your employer?", next: "residence_duration" },
+    { id: "residence_duration", text: "How long have you been staying here?", next: "permanent_address" },
+    { id: "permanent_address", text: "Do you have a different permanent address?", next: "income" },
+    { id: "income", text: "What's your monthly net income after deductions?", next: "bank" },
+    { id: "bank", text: "Which bank account should we use for loan disbursement?", next: "account" },
+    { id: "account", text: "Can you confirm the account number and IFSC code?", next: "confirm_other" },
+    { id: "confirm_other", text: (data) => `Just to confirm, here's what I have:\nCurrent Address: ${data.address || ''} (${data.address_status || ''}, ${data.residence_duration || ''})\nPermanent Address: ${data.permanent_address || ''}\nMonthly net income: ${data.income || ''}\nAccount No: ${data.account || ''}\nBank: ${data.bank || ''}\nShall I go ahead with these details?`, next: "final_confirm" },
+    { id: "final_confirm", text: "Perfect! Your loan application is now submitted. We'll review it and get back to you shortly with the next steps. Thank you!", next: "end" }
+];
+
+let loanAppState = {
+    currentQuestionId: "start",
+    tempData: {},
+    finished: false
+};
+
+function getQuestionById(id) {
+    return STATIC_QUESTIONS.find(q => q.id === id);
+}
+
+function resetLoanApp() {
+    loanAppState = {
+        currentQuestionId: "start",
+        tempData: {},
+        finished: false
+    };
+}
+
+// This function replaces the AI API call for the "loan_backend" modelType
+async function loanBackendSimulate(userMessage) {
+    // Get current question
+    const currentQ = getQuestionById(loanAppState.currentQuestionId);
+
+    // Confirmation logic for confirm_personal and confirm_other
+    if (
+        loanAppState.currentQuestionId === "confirm_personal" ||
+        loanAppState.currentQuestionId === "confirm_other"
+    ) {
+        const msg = userMessage.trim().toLowerCase();
+        if (["yes", "correct", "ok", "yep", "right", "sure"].some(w => msg.includes(w))) {
+            // Move to next question
+            loanAppState.currentQuestionId = currentQ.next;
+        } else if (["no", "incorrect", "wrong", "not correct"].some(w => msg.includes(w))) {
+            // Go back to previous question
+            // For simplicity, go back to the first question in the block
+            if (loanAppState.currentQuestionId === "confirm_personal") {
+                loanAppState.currentQuestionId = "name";
+            } else {
+                loanAppState.currentQuestionId = "address";
+            }
+        } else {
+            // Ask for confirmation again
+            return typeof currentQ.text === "function"
+                ? currentQ.text(loanAppState.tempData)
+                : currentQ.text;
+        }
+    } else if (loanAppState.currentQuestionId === "final_confirm") {
+        loanAppState.finished = true;
+        return getQuestionById("final_confirm").text;
+    } else {
+        // Store answer
+        loanAppState.tempData[loanAppState.currentQuestionId] = userMessage;
+        loanAppState.currentQuestionId = currentQ.next;
+    }
+
+    // Next question
+    const nextQ = getQuestionById(loanAppState.currentQuestionId);
+    if (!nextQ) {
+        loanAppState.finished = true;
+        return "Conversation ended. Thank you!";
+    }
+    if (typeof nextQ.text === "function") {
+        return nextQ.text(loanAppState.tempData);
+    }
+    return nextQ.text;
+}
+
+// --- Patch the callAPI function to use the above logic for "loan_backend" ---
+
+const origCallAPI = callAPI;
+callAPI = async function(message) {
+    const modelType = document.getElementById('modelType').value;
+    if (modelType === "loan_backend") {
+        // Use the local simulation
+        const response = await loanBackendSimulate(message);
+        // Optionally, update progress bar
+        const idx = STATIC_QUESTIONS.findIndex(q => q.id === loanAppState.currentQuestionId);
+        updateProgress(Math.floor((idx / (STATIC_QUESTIONS.length - 1)) * 100));
+        return response;
+    } else {
+        // Use the original API call for other models
+        return origCallAPI(message);
+    }
+};
+
+// Reset state when chat is cleared
+const origClearChat = clearChat;
+clearChat = function() {
+    origClearChat();
+    resetLoanApp();
+};
+
+// ...existing code...
+    </script>
+</body>
+</html>
