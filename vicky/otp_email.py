@@ -132,8 +132,8 @@ class OTPManager:
 
 def send_email(receiver_email, otp):
     try:
-        sender_email = "ramgutukade504@gmail.com"
-        sender_password = "ahgmsofxvcrjtllv"  # Gmail App Password
+        sender_email = "Enter_Your_Email_Id"
+        sender_password = "Enter_Your_Gmail_App_Password"  # Gmail App Password
 
         subject = "Your OTP Code"
         body = f"Your OTP is {otp}. It will expire in 2 minutes."
@@ -184,4 +184,5 @@ if __name__ == "__main__":
             retry = input("Do you want to try again? (yes/no): ").strip().lower()
             if retry != "yes":
                 break
+
 
